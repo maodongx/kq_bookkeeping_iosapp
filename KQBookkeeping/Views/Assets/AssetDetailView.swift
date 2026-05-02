@@ -4,6 +4,7 @@ import SwiftData
 struct AssetDetailView: View {
     @Bindable var asset: Asset
     @State private var showingAddTransaction = false
+    @State private var showingEditPrice = false
 
     private var sortedTransactions: [Transaction] {
         asset.transactions.sorted { $0.date > $1.date }
@@ -37,6 +38,9 @@ struct AssetDetailView: View {
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView(asset: asset)
         }
+        .sheet(isPresented: $showingEditPrice) {
+            EditPriceView(asset: asset)
+        }
     }
 
     private var infoSection: some View {
@@ -69,12 +73,35 @@ struct AssetDetailView: View {
                 Text(CurrencyFormatter.format(asset.averageCost, currency: asset.currency))
                     .monospacedDigit()
             }
-            if let price = asset.currentPrice {
-                LabeledContent("当前价格") {
-                    Text(CurrencyFormatter.format(price, currency: asset.currency))
-                        .monospacedDigit()
+
+            Button {
+                showingEditPrice = true
+            } label: {
+                HStack {
+                    Text("当前价格")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if let price = asset.currentPrice {
+                            Text(CurrencyFormatter.format(price, currency: asset.currency))
+                                .monospacedDigit()
+                            if let update = asset.lastPriceUpdate {
+                                Text("\(update, style: .relative)前更新")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        } else {
+                            Text("点击设置")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
+            .buttonStyle(.plain)
+
             LabeledContent("市值") {
                 Text(CurrencyFormatter.format(asset.marketValue, currency: asset.currency))
                     .monospacedDigit()
@@ -105,6 +132,71 @@ struct AssetDetailView: View {
         }
     }
 }
+
+// MARK: - Edit Price Sheet
+
+struct EditPriceView: View {
+    @Bindable var asset: Asset
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var priceText = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("当前价格") {
+                    TextField("价格（\(asset.currency.symbol)）", text: $priceText)
+                        .keyboardType(.decimalPad)
+
+                    if let currentPrice = asset.currentPrice {
+                        LabeledContent("原价格") {
+                            Text(CurrencyFormatter.format(currentPrice, currency: asset.currency))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("修改价格")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") { save() }
+                        .disabled(Decimal(string: priceText) == nil)
+                }
+            }
+            .onAppear {
+                if let price = asset.currentPrice {
+                    priceText = "\(price)"
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard let price = Decimal(string: priceText) else { return }
+        asset.currentPrice = price
+        asset.lastPriceUpdate = Date()
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let alreadyHasSnapshot = asset.priceSnapshots.contains {
+            calendar.isDate($0.date, inSameDayAs: today)
+        }
+        if !alreadyHasSnapshot {
+            let snapshot = AssetPriceSnapshot(asset: asset, price: price, date: today)
+            modelContext.insert(snapshot)
+        }
+
+        dismiss()
+    }
+}
+
+// MARK: - Transaction Row
 
 struct TransactionRowView: View {
     let transaction: Transaction

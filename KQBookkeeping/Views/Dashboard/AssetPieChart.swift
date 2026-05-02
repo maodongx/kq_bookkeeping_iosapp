@@ -4,14 +4,15 @@ import Charts
 struct AssetPieChart: View {
     let assets: [Asset]
     let displayCurrency: Currency
+    let refreshManager: PriceRefreshManager
 
     private var chartData: [(category: String, value: Double)] {
         let grouped = Dictionary(grouping: assets) { $0.category }
         return AssetCategory.allCases.compactMap { category in
             guard let items = grouped[category] else { return nil }
-            let total = items
-                .filter { $0.currency == displayCurrency }
-                .reduce(Decimal.zero) { $0 + $1.marketValue }
+            let total = items.reduce(Decimal.zero) { sum, asset in
+                sum + refreshManager.convert(asset.marketValue, from: asset.currency, to: displayCurrency)
+            }
             let doubleValue = NSDecimalNumber(decimal: total).doubleValue
             guard doubleValue > 0 else { return nil }
             return (category: category.displayName, value: doubleValue)
@@ -24,7 +25,7 @@ struct AssetPieChart: View {
                 .font(.headline)
 
             if chartData.isEmpty {
-                Text("暂无\(displayCurrency.displayName)资产数据")
+                Text("暂无资产数据")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 150)

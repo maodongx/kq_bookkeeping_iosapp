@@ -103,7 +103,7 @@ struct AddAssetView: View {
             }
 
             TextField(
-                category == .usStock ? "代码（如 AAPL）" : "基金代码",
+                category == .usStock ? "代码（如 AAPL）" : fundProvider.codeHint,
                 text: $symbol
             )
             .textInputAutocapitalization(.characters)

@@ -3,6 +3,8 @@ import SwiftData
 
 struct DashboardView: View {
     @Query private var assets: [Asset]
+    @Environment(\.modelContext) private var modelContext
+    @Environment(PriceRefreshManager.self) private var refreshManager
     @State private var displayCurrency: Currency = .cny
 
     var body: some View {
@@ -11,20 +13,47 @@ struct DashboardView: View {
                 VStack(spacing: 16) {
                     NetWorthCard(
                         assets: assets,
-                        displayCurrency: $displayCurrency
+                        displayCurrency: $displayCurrency,
+                        refreshManager: refreshManager
                     )
 
-                    if !assets.isEmpty {
-                        AssetPieChart(assets: assets, displayCurrency: displayCurrency)
+                    if refreshManager.isRefreshing {
+                        ProgressView("正在刷新价格...")
+                            .font(.caption)
+                    }
 
-                        AssetSummaryList(assets: assets, displayCurrency: displayCurrency)
+                    if let error = refreshManager.lastError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal)
+                    }
+
+                    if !assets.isEmpty {
+                        AssetPieChart(
+                            assets: assets,
+                            displayCurrency: displayCurrency,
+                            refreshManager: refreshManager
+                        )
+
+                        AssetSummaryList(
+                            assets: assets,
+                            displayCurrency: displayCurrency,
+                            refreshManager: refreshManager
+                        )
                     } else {
                         emptyStateView
                     }
                 }
                 .padding()
             }
+            .refreshable {
+                await refreshManager.refreshAll(modelContext: modelContext)
+            }
             .navigationTitle("总览")
+            .task {
+                await refreshManager.refreshIfNeeded(modelContext: modelContext)
+            }
         }
     }
 
@@ -48,6 +77,7 @@ struct DashboardView: View {
 private struct AssetSummaryList: View {
     let assets: [Asset]
     let displayCurrency: Currency
+    let refreshManager: PriceRefreshManager
 
     private var groupedAssets: [(AssetCategory, [Asset])] {
         let grouped = Dictionary(grouping: assets) { $0.category }
@@ -69,7 +99,11 @@ private struct AssetSummaryList: View {
                         .foregroundStyle(.secondary)
 
                     ForEach(items) { asset in
-                        AssetSummaryRow(asset: asset)
+                        AssetSummaryRow(
+                            asset: asset,
+                            displayCurrency: displayCurrency,
+                            refreshManager: refreshManager
+                        )
                     }
                 }
             }
@@ -79,6 +113,12 @@ private struct AssetSummaryList: View {
 
 private struct AssetSummaryRow: View {
     let asset: Asset
+    let displayCurrency: Currency
+    let refreshManager: PriceRefreshManager
+
+    private var convertedValue: Decimal {
+        refreshManager.convert(asset.marketValue, from: asset.currency, to: displayCurrency)
+    }
 
     var body: some View {
         HStack {
@@ -95,7 +135,7 @@ private struct AssetSummaryRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(CurrencyFormatter.format(asset.marketValue, currency: asset.currency))
+                Text(CurrencyFormatter.format(convertedValue, currency: displayCurrency))
                     .font(.body.monospacedDigit())
 
                 if asset.category == .usStock || asset.category == .jpFund {
@@ -116,4 +156,5 @@ private struct AssetSummaryRow: View {
 #Preview {
     DashboardView()
         .modelContainer(for: [Asset.self, Transaction.self], inMemory: true)
+        .environment(PriceRefreshManager())
 }

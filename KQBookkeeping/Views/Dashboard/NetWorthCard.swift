@@ -3,13 +3,10 @@ import SwiftUI
 struct NetWorthCard: View {
     let assets: [Asset]
     @Binding var displayCurrency: Currency
+    let refreshManager: PriceRefreshManager
 
     private var totalNetWorth: Decimal {
-        // TODO: Phase 2 — convert all assets to displayCurrency using exchange rates
-        // For now, sum assets in each currency separately and show the selected one
-        assets
-            .filter { $0.currency == displayCurrency }
-            .reduce(Decimal.zero) { $0 + $1.marketValue }
+        refreshManager.totalNetWorth(assets: assets, in: displayCurrency)
     }
 
     var body: some View {
@@ -21,6 +18,12 @@ struct NetWorthCard: View {
             Text(CurrencyFormatter.format(totalNetWorth, currency: displayCurrency))
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .monospacedDigit()
+
+            if let lastRefresh = refreshManager.lastRefreshDate {
+                Text("更新于 \(lastRefresh, style: .relative)前")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
 
             currencyPicker
         }

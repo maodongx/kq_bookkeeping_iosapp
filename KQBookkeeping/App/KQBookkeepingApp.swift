@@ -3,6 +3,8 @@ import SwiftData
 
 @main
 struct KQBookkeepingApp: App {
+    @State private var refreshManager = PriceRefreshManager()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Asset.self,
@@ -22,6 +24,7 @@ struct KQBookkeepingApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environment(refreshManager)
         }
         .modelContainer(sharedModelContainer)
     }

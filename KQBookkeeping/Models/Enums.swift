@@ -103,8 +103,16 @@ enum FundProvider: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .mufg: return "三菱UFJ (eMAXIS等)"
-        case .rakuten: return "乐天证券"
-        case .other: return "其他"
+        case .rakuten: return "乐天 (Rakuten)"
+        case .other: return "其他（手动输入）"
+        }
+    }
+
+    var codeHint: String {
+        switch self {
+        case .mufg: return "基金代码（如 253425）"
+        case .rakuten: return "Nikkei fcode（如 9I31223A）"
+        case .other: return "代码（可选）"
         }
     }
 }

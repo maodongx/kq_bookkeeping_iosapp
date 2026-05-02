@@ -35,4 +35,5 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
         .modelContainer(for: [Asset.self, Transaction.self], inMemory: true)
+        .environment(PriceRefreshManager())
 }
