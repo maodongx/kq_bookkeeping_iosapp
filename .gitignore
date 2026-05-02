@@ -88,3 +88,8 @@ fastlane/test_output
 *.cer
 secrets.plist
 Secrets.swift
+KQBookkeeping.xcodeproj/*
+.vscode/*
+CLAUDE.md
+PLAN.md
+.claude/*

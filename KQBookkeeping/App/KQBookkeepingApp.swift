@@ -1,10 +1,3 @@
-//
-//  KQBookkeepingApp.swift
-//  KQBookkeeping
-//
-//  Created by Xiang, Maodong on 2026/05/02.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,7 +5,10 @@ import SwiftData
 struct KQBookkeepingApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Asset.self,
+            Transaction.self,
+            AssetPriceSnapshot.self,
+            ExchangeRateSnapshot.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +21,7 @@ struct KQBookkeepingApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
         .modelContainer(sharedModelContainer)
     }
