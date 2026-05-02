@@ -1,0 +1,90 @@
+# ======================================================================
+# macOS
+# ======================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Thumbnails
+.Spotlight-V100
+.Trashes
+
+# ======================================================================
+# Xcode
+# ======================================================================
+# Build generated
+build/
+DerivedData/
+
+# Various user settings
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Other
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Per-user Xcode schemes (keep shared ones)
+!xcshareddata/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+Packages/
+Package.pins
+Package.resolved
+.swiftpm/
+.build/
+
+# CocoaPods (unused, but ignore if added later)
+Pods/
+
+# Carthage (unused, but ignore if added later)
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# ======================================================================
+# Editors
+# ======================================================================
+# VS Code — keep shared settings, ignore per-user state
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains / AppCode
+.idea/
+*.iml
+
+# Vim / Emacs
+*.swp
+*.swo
+*~
+
+# ======================================================================
+# Environment / secrets (defensive)
+# ======================================================================
+*.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+*.cer
+secrets.plist
+Secrets.swift
