@@ -10,7 +10,7 @@ struct PriceResult {
 protocol PriceServiceProtocol: Sendable {
     func fetchUSStockPrice(symbol: String) async throws -> PriceResult
     func fetchMUFGFundPrice(fundCode: String) async throws -> PriceResult
-    func fetchNikkeiFundPrice(fcode: String) async throws -> PriceResult
+    func fetchYahooJPFundPrice(code: String) async throws -> PriceResult
 }
 
 protocol ExchangeRateServiceProtocol: Sendable {

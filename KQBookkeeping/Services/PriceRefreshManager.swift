@@ -78,7 +78,7 @@ final class PriceRefreshManager {
             case .mufg:
                 result = try await priceService.fetchMUFGFundPrice(fundCode: code)
             case .rakuten:
-                result = try await priceService.fetchNikkeiFundPrice(fcode: code)
+                result = try await priceService.fetchYahooJPFundPrice(code: code)
             case .other, nil:
                 return
             }
