@@ -4,6 +4,7 @@ import SwiftData
 struct AssetListView: View {
     @Query(sort: \Asset.createdAt, order: .reverse) private var assets: [Asset]
     @Environment(\.modelContext) private var modelContext
+    @Environment(PriceRefreshManager.self) private var refreshManager
     @State private var showingAddAsset = false
 
     private var groupedAssets: [(AssetCategory, [Asset])] {
@@ -53,6 +54,18 @@ struct AssetListView: View {
                     }
                 } header: {
                     Label(category.displayName, systemImage: category.iconName)
+                } footer: {
+                    let subtotal = items.reduce(Decimal.zero) { $0 + $1.marketValue }
+                    let currency = items.first?.currency ?? .cny
+                    let allSameCurrency = items.allSatisfy { $0.currency == currency }
+                    if allSameCurrency {
+                        Text("小计: \(CurrencyFormatter.format(subtotal, currency: currency))")
+                    } else {
+                        let converted = items.reduce(Decimal.zero) { sum, asset in
+                            sum + refreshManager.convert(asset.marketValue, from: asset.currency, to: .cny)
+                        }
+                        Text("小计: \(CurrencyFormatter.format(converted, currency: .cny))（折合人民币）")
+                    }
                 }
             }
         }
@@ -83,6 +96,8 @@ struct AssetListView: View {
         }
     }
 }
+
+// MARK: - Asset Row
 
 struct AssetRowView: View {
     let asset: Asset
@@ -119,9 +134,12 @@ struct AssetRowView: View {
 
                 if asset.category == .usStock || asset.category == .jpFund {
                     let gl = asset.totalGainLoss
-                    Text(CurrencyFormatter.formatPercent(asset.totalGainLossPercent))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(gl >= 0 ? .red : .green)
+                    HStack(spacing: 4) {
+                        Text(CurrencyFormatter.format(gl, currency: asset.currency, showSign: true))
+                        Text(CurrencyFormatter.formatPercent(asset.totalGainLossPercent))
+                    }
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(gl >= 0 ? .red : .green)
                 }
             }
         }
@@ -132,4 +150,5 @@ struct AssetRowView: View {
 #Preview {
     AssetListView()
         .modelContainer(for: [Asset.self, Transaction.self], inMemory: true)
+        .environment(PriceRefreshManager())
 }

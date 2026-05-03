@@ -3,36 +3,28 @@ import SwiftData
 
 struct ChartsView: View {
     @Query private var assets: [Asset]
+    @Environment(PriceRefreshManager.self) private var refreshManager
+    @State private var displayCurrency: Currency = .cny
 
     var body: some View {
         NavigationStack {
             if assets.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "chart.xyaxis.line")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("暂无数据")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Text("添加资产并记录交易后，这里将展示分析图表")
-                        .font(.subheadline)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
+                emptyState
             } else {
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Phase 4: 折线图和柱状图将在此处实现
-                        placeholderCard(
-                            icon: "chart.line.uptrend.xyaxis",
-                            title: "总资产走势",
-                            subtitle: "价格接入后将展示历史净值变化"
+                        currencyPicker
+
+                        NetWorthLineChart(
+                            assets: assets,
+                            displayCurrency: displayCurrency,
+                            refreshManager: refreshManager
                         )
-                        placeholderCard(
-                            icon: "chart.bar",
-                            title: "盈亏分析",
-                            subtitle: "各资产盈亏对比"
+
+                        GainLossBarChart(
+                            assets: assets,
+                            displayCurrency: displayCurrency,
+                            refreshManager: refreshManager
                         )
                     }
                     .padding()
@@ -42,27 +34,52 @@ struct ChartsView: View {
         .navigationTitle("分析")
     }
 
-    private func placeholderCard(icon: String, title: String, subtitle: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 36))
-                .foregroundStyle(.secondary)
-            Text(title)
-                .font(.headline)
-            Text(subtitle)
+    private var currencyPicker: some View {
+        HStack(spacing: 8) {
+            Text("显示币种")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            Spacer()
+            ForEach(Currency.allCases) { currency in
+                Button {
+                    withAnimation { displayCurrency = currency }
+                } label: {
+                    Text("\(currency.flagEmoji) \(currency.rawValue)")
+                        .font(.caption)
+                        .fontWeight(displayCurrency == currency ? .semibold : .regular)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            displayCurrency == currency
+                                ? Color.accentColor.opacity(0.15)
+                                : Color(.tertiarySystemBackground)
+                        )
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemBackground))
-        )
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "chart.xyaxis.line")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text("暂无数据")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("添加资产并记录交易后，这里将展示分析图表")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
     }
 }
 
 #Preview {
     ChartsView()
         .modelContainer(for: [Asset.self], inMemory: true)
+        .environment(PriceRefreshManager())
 }

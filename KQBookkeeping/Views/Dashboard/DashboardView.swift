@@ -30,6 +30,8 @@ struct DashboardView: View {
                     }
 
                     if !assets.isEmpty {
+                        topMoversSection
+
                         AssetPieChart(
                             assets: assets,
                             displayCurrency: displayCurrency,
@@ -57,6 +59,62 @@ struct DashboardView: View {
         }
     }
 
+    private var investmentAssets: [Asset] {
+        assets.filter { $0.category == .usStock || $0.category == .jpFund }
+    }
+
+    @ViewBuilder
+    private var topMoversSection: some View {
+        let sorted = investmentAssets
+            .filter { $0.totalCost > 0 }
+            .sorted { $0.totalGainLossPercent > $1.totalGainLossPercent }
+
+        if !sorted.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("投资盈亏")
+                    .font(.headline)
+
+                ForEach(sorted) { asset in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(asset.name)
+                                .font(.subheadline)
+                            if let symbol = asset.symbol {
+                                Text(symbol)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 2) {
+                            let gl = asset.totalGainLoss
+                            Text(CurrencyFormatter.format(
+                                refreshManager.convert(gl, from: asset.currency, to: displayCurrency),
+                                currency: displayCurrency,
+                                showSign: true
+                            ))
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(gl >= 0 ? .red : .green)
+
+                            Text(CurrencyFormatter.formatPercent(asset.totalGainLossPercent))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(gl >= 0 ? .red : .green)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+            )
+        }
+    }
+
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "tray")
@@ -73,6 +131,8 @@ struct DashboardView: View {
         .padding(.vertical, 60)
     }
 }
+
+// MARK: - Asset Summary List
 
 private struct AssetSummaryList: View {
     let assets: [Asset]
@@ -94,9 +154,18 @@ private struct AssetSummaryList: View {
 
             ForEach(groupedAssets, id: \.0) { category, items in
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(category.displayName, systemImage: category.iconName)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    HStack {
+                        Label(category.displayName, systemImage: category.iconName)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        let subtotal = items.reduce(Decimal.zero) { sum, asset in
+                            sum + refreshManager.convert(asset.marketValue, from: asset.currency, to: displayCurrency)
+                        }
+                        Text(CurrencyFormatter.format(subtotal, currency: displayCurrency))
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
 
                     ForEach(items) { asset in
                         AssetSummaryRow(
@@ -110,6 +179,8 @@ private struct AssetSummaryList: View {
         }
     }
 }
+
+// MARK: - Asset Summary Row
 
 private struct AssetSummaryRow: View {
     let asset: Asset
@@ -140,9 +211,12 @@ private struct AssetSummaryRow: View {
 
                 if asset.category == .usStock || asset.category == .jpFund {
                     let gainLoss = asset.totalGainLoss
-                    Text(CurrencyFormatter.format(gainLoss, currency: asset.currency, showSign: true))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(gainLoss >= 0 ? .red : .green)
+                    HStack(spacing: 4) {
+                        Text(CurrencyFormatter.format(gainLoss, currency: asset.currency, showSign: true))
+                        Text(CurrencyFormatter.formatPercent(asset.totalGainLossPercent))
+                    }
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(gainLoss >= 0 ? .red : .green)
                 }
             }
         }

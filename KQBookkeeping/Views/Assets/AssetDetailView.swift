@@ -3,6 +3,7 @@ import SwiftData
 
 struct AssetDetailView: View {
     @Bindable var asset: Asset
+    @Environment(\.modelContext) private var modelContext
     @State private var showingAddTransaction = false
     @State private var showingEditPrice = false
 
@@ -20,6 +21,8 @@ struct AssetDetailView: View {
 
             if isInvestment {
                 holdingSection
+            } else {
+                balanceSummarySection
             }
 
             transactionsSection
@@ -43,6 +46,8 @@ struct AssetDetailView: View {
         }
     }
 
+    // MARK: - Info
+
     private var infoSection: some View {
         Section("基本信息") {
             LabeledContent("分类") {
@@ -63,6 +68,8 @@ struct AssetDetailView: View {
         }
     }
 
+    // MARK: - Investment Holdings
+
     private var holdingSection: some View {
         Section("持仓概要") {
             LabeledContent("持有数量") {
@@ -71,6 +78,10 @@ struct AssetDetailView: View {
             }
             LabeledContent("平均成本") {
                 Text(CurrencyFormatter.format(asset.averageCost, currency: asset.currency))
+                    .monospacedDigit()
+            }
+            LabeledContent("总投入") {
+                Text(CurrencyFormatter.format(asset.totalCost, currency: asset.currency))
                     .monospacedDigit()
             }
 
@@ -105,19 +116,39 @@ struct AssetDetailView: View {
             LabeledContent("市值") {
                 Text(CurrencyFormatter.format(asset.marketValue, currency: asset.currency))
                     .monospacedDigit()
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
             }
+
+            let gl = asset.totalGainLoss
             LabeledContent("盈亏") {
-                let gl = asset.totalGainLoss
                 HStack(spacing: 4) {
                     Text(CurrencyFormatter.format(gl, currency: asset.currency, showSign: true))
                     Text(CurrencyFormatter.formatPercent(asset.totalGainLossPercent))
                 }
                 .monospacedDigit()
+                .fontWeight(.medium)
                 .foregroundStyle(gl >= 0 ? .red : .green)
             }
         }
     }
+
+    // MARK: - Bank / Cash Balance
+
+    private var balanceSummarySection: some View {
+        Section("余额概要") {
+            LabeledContent("当前余额") {
+                Text(CurrencyFormatter.format(asset.currentBalance, currency: asset.currency))
+                    .monospacedDigit()
+                    .fontWeight(.semibold)
+            }
+            LabeledContent("交易笔数") {
+                Text("\(asset.transactions.count)")
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    // MARK: - Transactions
 
     private var transactionsSection: some View {
         Section("交易记录（\(asset.transactions.count)）") {
@@ -128,7 +159,15 @@ struct AssetDetailView: View {
                 ForEach(sortedTransactions) { tx in
                     TransactionRowView(transaction: tx, currency: asset.currency, isInvestment: isInvestment)
                 }
+                .onDelete(perform: deleteTransactions)
             }
+        }
+    }
+
+    private func deleteTransactions(at offsets: IndexSet) {
+        for index in offsets {
+            let tx = sortedTransactions[index]
+            modelContext.delete(tx)
         }
     }
 }
@@ -212,6 +251,12 @@ struct TransactionRowView: View {
                 Text(transaction.date, style: .date)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let note = transaction.note, !note.isEmpty {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
